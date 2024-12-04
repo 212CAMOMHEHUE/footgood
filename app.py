@@ -59,7 +59,7 @@ def reshuffle_teams(teams, max_rating_difference=5):
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
+    conn = sqlite3.connect('./data.db')
     cursor = conn.cursor()
 
     cursor.execute("SELECT COUNT() FROM your_table_name WHERE participate = 'TRUE'")
