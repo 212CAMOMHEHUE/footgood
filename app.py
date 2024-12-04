@@ -1,6 +1,9 @@
 from flask import Flask, render_template_string, redirect, url_for, request
 import sqlite3
 import update_data_script  # Импорт скрипта для обновления данных
+import os
+if not os.path.exists('/tmp/data.db'):
+    print("База данных не найдена. Создаем новую.")
 
 app = Flask(__name__)
 
