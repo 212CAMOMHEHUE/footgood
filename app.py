@@ -237,15 +237,18 @@ def reshuffle_teams_route():
     conn.close()
     return render_template_string(result_html)
 
+
+from flask import Flask, redirect, url_for
+import update_data_script
+
+app = Flask(__name__)
 @app.route('/update_data')
 def update_data():
-    script_path = os.path.join(os.path.dirname(__file__), '2.py')
-    result = subprocess.run(['python', script_path], capture_output=True, text=True)
-    if result.returncode == 0:
-        print("Данные успешно обновлены.")
-    else:
-        print("Ошибка при обновлении данных:", result.stderr)
-    return redirect(url_for('index'))
+    try:
+        update_data_script.run_update()  # Вызов функции обновления данных
+        return redirect(url_for('index'))
+    except Exception as e:
+        return f"Ошибка при обновлении данных: {e}"
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True)
