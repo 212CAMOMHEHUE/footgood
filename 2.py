@@ -11,7 +11,7 @@ def run_update():
     if response.status_code == 200:
         data = response.text
         csv_reader = csv.reader(StringIO(data))
-        conn = sqlite3.connect('./data.db')
+        conn = sqlite3.connect('/tmp/data.db')
         cursor = conn.cursor()
 
         cursor.execute('DROP TABLE IF EXISTS your_table_name')
