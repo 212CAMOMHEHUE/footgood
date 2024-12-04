@@ -3,6 +3,7 @@ import sqlite3
 import subprocess
 import os
 import random
+import update_data_script
 
 app = Flask(__name__)
 
@@ -238,10 +239,7 @@ def reshuffle_teams_route():
     return render_template_string(result_html)
 
 
-from flask import Flask, redirect, url_for
-import update_data_script
 
-app = Flask(__name__)
 @app.route('/update_data')
 def update_data():
     try:
