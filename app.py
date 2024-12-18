@@ -25,14 +25,16 @@ def get_active_players(cursor):
     return cursor.fetchall()
 
 def distribute_players(teams, active_players):
+    # Сортируем игроков по рейтингу (в порядке убывания)
     sorted_players = sorted(active_players, key=lambda x: int(x[3]), reverse=True)
     balanced_teams = [[] for _ in range(len(teams))]
-    groups = [sorted_players[i:i+2] for i in range(0, len(sorted_players), 2)]
-    for group in groups:
-        team_index = min(range(len(balanced_teams)), key=lambda idx: sum(int(player[3]) for player in balanced_teams[idx]))
-        for player in group:
-            balanced_teams[team_index].append(player)
-            team_index = min(range(len(balanced_teams)), key=lambda idx: sum(int(player[3]) for player in balanced_teams[idx]))
+
+    # Разбиваем игроков на команды
+    for player in sorted_players:
+        # Выбираем команду с наименьшей суммой рейтингов
+        team_index = min(range(len(balanced_teams)), key=lambda idx: sum(int(p[3]) for p in balanced_teams[idx]))
+        balanced_teams[team_index].append(player)
+
     return balanced_teams
 
 def reshuffle_teams(teams, max_rating_difference=5):
@@ -181,7 +183,7 @@ def index():
 
 @app.route('/reshuffle_teams')
 def reshuffle_teams_route():
-    conn = sqlite3.connect('./data.db')
+    conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
     cursor = conn.cursor()
     active_players = get_active_players(cursor)
 
@@ -248,4 +250,4 @@ def update_data():
     return redirect(url_for('index'))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)  
