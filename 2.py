@@ -20,7 +20,7 @@ if response.status_code == 200:
     # Удаляем таблицу, если она уже существует
     cursor.execute('DROP TABLE IF EXISTS your_table_name')
 
-    # Создаем таблицу с заголовками и добавляем колонку "новый рейтинг"
+    # Создаем таблицу с заголовками и добавляем новые колонки "новый рейтинг" и "текущее место"
     cursor.execute('''
         CREATE TABLE your_table_name (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +30,8 @@ if response.status_code == 200:
             participate TEXT,
             team_member TEXT,
             team TEXT,  -- Колонка для команды
-            new_rating TEXT  -- Новая колонка для нового рейтинга
+            new_rating TEXT,  -- Новая колонка для нового рейтинга
+            current_place TEXT  -- Новая колонка для текущего места
         )
     ''')
 
