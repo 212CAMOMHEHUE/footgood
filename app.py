@@ -58,11 +58,50 @@ def reshuffle_teams(teams, cursor, max_rating_difference=5):
             return reshuffled_teams
 
     return teams
+#
+#################### #################### ####################
+#####          ##### #########  ######### #####          #####
+############## ##### ########## ######### ############## #####
+#####          ##### ########## ######### #####          #####
+##### ############## ########## ######### ##### ##############
+#####          ##### #####          ##### #####          #####
+#################### #################### ####################
+# тут страница Обновить данные:
+#
 
 @app.route('/')
 def index():
     conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
     cursor = conn.cursor()
+
+    # Проверяем, есть ли в базе данные о местах команд или новых рейтингах
+    cursor.execute("SELECT COUNT(*) FROM your_table_name WHERE current_place IS NOT NULL OR new_rating IS NOT NULL")
+    data_exists = cursor.fetchone()[0] > 0
+
+    if data_exists:
+        # Если данные о местах или рейтингах существуют, возвращаем сообщение
+        result_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+        body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
+        .team-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .team { background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 10px; padding: 15px; width: 400px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
+        .team h2 { margin: 0; font-size: 18px; color: black; }
+        .team p { margin: 5px 0; }
+        </style>
+        </head>
+        <body>
+        <h1>Места проставлены!</h1> 
+        <h2>Невозможно загрузить новых участников команд!</h2>
+        <p>Сначала сохраните новые значения рейтингов или очистите места.</p>
+        <a href='/assign_places'><button>Проставить места</button></a>
+        </body>
+        </html>
+        """
+        conn.close()
+        return render_template_string(result_html)
 
     cursor.execute("SELECT COUNT() FROM your_table_name WHERE participate = 'TRUE'")
     count = cursor.fetchone()[0]
@@ -97,6 +136,14 @@ def index():
 
             teams = [[] for _ in range(num_teams)]
             teams = distribute_players(teams, active_players)
+
+            # Записываем команды в базу данных
+            for team_index, team in enumerate(teams):
+                team_name = f"Команда {team_index + 1}"
+                for player in team:
+                    cursor.execute("UPDATE your_table_name SET team = ? WHERE id = ?", (team_name, player[0]))
+
+            conn.commit()
 
             result_html = """
             <!DOCTYPE html>
@@ -182,10 +229,52 @@ def index():
 
     conn.close()
 
+
+#
+#################### #################### ####################
+#####          ##### #########  ######### #####          #####
+############## ##### ########## ######### ############## #####
+#####          ##### ########## ######### #####          #####
+##### ############## ########## ######### ##### ##############
+#####          ##### #####          ##### #####          #####
+#################### #################### ####################
+# тут страница пересортировки команд:
+#
+
 @app.route('/reshuffle_teams')
 def reshuffle_teams_route():
     conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
     cursor = conn.cursor()
+
+    # Проверяем, есть ли в базе данные о местах команд или новых рейтингах
+    cursor.execute("SELECT COUNT(*) FROM your_table_name WHERE current_place IS NOT NULL OR new_rating IS NOT NULL")
+    data_exists = cursor.fetchone()[0] > 0
+
+    if data_exists:
+        # Если данные о местах или рейтингах существуют, возвращаем сообщение
+        result_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+        body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
+        .team-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .team { background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 10px; padding: 15px; width: 400px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
+        .team h2 { margin: 0; font-size: 18px; color: black; }
+        .team p { margin: 5px 0; }
+        </style>
+        </head>
+        <body>
+        <h1>Места проставлены! Невозможно пересортировать участников команд!</h1>
+        <p>Сначала сохраните новые значения рейтингов или очистите места.</p>
+        <a href='/'><button>Назад</button></a>
+        </body>
+        </html>
+        """
+        conn.close()
+        return render_template_string(result_html)
+
+    # Если данных о местах или рейтингах нет, выполняем пересортировку
     active_players = get_active_players(cursor)
 
     cursor.execute("SELECT COUNT() FROM your_table_name WHERE participate = 'TRUE'")
@@ -220,7 +309,6 @@ def reshuffle_teams_route():
     <a href='/update_data'><button>Обновить данные</button></a>
     <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
     <a href='/assign_places'><button>Назначить места</button></a>
-    <a href='/'><button>Назад</button></a>
     <div class="team-container">
     """
 
@@ -244,18 +332,66 @@ def reshuffle_teams_route():
 
     return render_template_string(result_html)
 
+#
+#################### #################### ####################
+#####          ##### #########  ######### #####          #####
+############## ##### ########## ######### ############## #####
+#####          ##### ########## ######### #####          #####
+##### ############## ########## ######### ##### ##############
+#####          ##### #####          ##### #####          #####
+#################### #################### ####################
+# тут страница распределения команд по занятым местам за игру:
+#
+
 @app.route('/assign_places', methods=['GET', 'POST'])
 def assign_places():
     conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
     cursor = conn.cursor()
 
-    cursor.execute("SELECT DISTINCT team FROM your_table_name WHERE team IS NOT NULL ORDER BY team")
+    # Проверяем количество команд
+    cursor.execute("SELECT team, current_place FROM your_table_name WHERE team IS NOT NULL GROUP BY team ORDER BY team")
     teams = cursor.fetchall()
+    num_teams = len(teams)
+
+    rating_adjustments = {
+        6: [2, 1, 0, 0, -1, -2],
+        5: [2, 1, 0, -1, -2],
+        4: [2, 1, -1, -2],
+        3: [2, 1, -2],
+        2: [2, -2]
+    }
+
+    adjustments = rating_adjustments.get(num_teams, [])
 
     if request.method == 'POST':
-        assigned_places = {team: request.form.get(team) for team, in teams}
-        print("Назначенные места:", assigned_places)
+        if 'save' in request.form:
+            # Сохраняем выбранные места в базу данных
+            for team, _ in teams:
+                selected_place = request.form.get(team)
+                if selected_place:
+                    # Обновляем текущее место команды
+                    cursor.execute("UPDATE your_table_name SET current_place = ? WHERE team = ?", (selected_place, team))
 
+                    # Обновляем новый рейтинг для игроков в команде
+                    cursor.execute("SELECT id, rank FROM your_table_name WHERE team = ?", (team,))
+                    players = cursor.fetchall()
+                    for player_id, rank in players:
+                        try:
+                            new_rating = int(rank) + adjustments[int(selected_place) - 1]
+                            cursor.execute("UPDATE your_table_name SET new_rating = ? WHERE id = ?", (new_rating, player_id))
+                        except ValueError:
+                            print(f"Невозможно преобразовать рейтинг игрока с id {player_id} в число.")
+            conn.commit()
+        elif 'clear' in request.form:
+            # Очищаем значения мест и новых рейтингов
+            cursor.execute("UPDATE your_table_name SET current_place = NULL, new_rating = NULL")
+            conn.commit()
+
+    # Обновляем список команд и их текущих мест после сохранения
+    cursor.execute("SELECT team, current_place FROM your_table_name WHERE team IS NOT NULL GROUP BY team ORDER BY team")
+    teams = cursor.fetchall()
+
+    # Генерируем HTML для отображения списка команд
     result_html = """
     <!DOCTYPE html>
     <html>
@@ -275,25 +411,27 @@ def assign_places():
     <div class="place-container">
     """
 
-    color_map = {team[0]: color[1] for team, color in zip(colors, colors)}
+    color_map = {team_name: color for team_name, color in colors}
 
-    for team, in teams:
+    for team, current_place in teams:
         team_color = color_map.get(team, "#FFFFFF")
         result_html += f"""
         <div class="team-row">
             <span style='background-color: {team_color}; width: 20px; height: 20px; display: inline-block;'></span>
             <span>{team}</span>
             <select name="{team}">
-                <option value="">Выберите место</option>
+                <option value="" {'selected' if not current_place else ''}>Выберите место</option>
         """
-        for i in range(1, 7):
-            result_html += f"<option value='{i}'>Место {i}</option>"
+        for i in range(1, num_teams + 1):
+            selected = "selected" if current_place == str(i) else ""
+            result_html += f"<option value='{i}' {selected}>Место {i}</option>"
 
         result_html += "</select></div>"
 
     result_html += """
     </div>
-    <button type="submit">Сохранить</button>
+    <button type="submit" name="save">Сохранить</button>
+    <button type="submit" name="clear">Стереть</button>
     </form>
     </body>
     </html>
@@ -301,6 +439,17 @@ def assign_places():
 
     conn.close()
     return render_template_string(result_html)
+
+#
+#################### #################### ####################
+#####          ##### #########  ######### #####          #####
+############## ##### ########## ######### ############## #####
+#####          ##### ########## ######### #####          #####
+##### ############## ########## ######### ##### ##############
+#####          ##### #####          ##### #####          #####
+#################### #################### ####################
+# тут кнопка обновить данные из гуглтаблицы:
+#
 
 @app.route('/update_data')
 def update_data():
