@@ -25,19 +25,16 @@ def get_active_players(cursor):
     return cursor.fetchall()
 
 def distribute_players(teams, active_players):
-    # Сортируем игроков по рейтингу (в порядке убывания)
     sorted_players = sorted(active_players, key=lambda x: int(x[3]), reverse=True)
     balanced_teams = [[] for _ in range(len(teams))]
 
-    # Разбиваем игроков на команды
     for player in sorted_players:
-        # Выбираем команду с наименьшей суммой рейтингов
         team_index = min(range(len(balanced_teams)), key=lambda idx: sum(int(p[3]) for p in balanced_teams[idx]))
         balanced_teams[team_index].append(player)
 
     return balanced_teams
 
-def reshuffle_teams(teams, max_rating_difference=5):
+def reshuffle_teams(teams, cursor, max_rating_difference=5):
     flat_players = [player for team in teams for player in team]
     num_teams = len(teams)
     team_sizes = [len(team) for team in teams]
@@ -55,6 +52,9 @@ def reshuffle_teams(teams, max_rating_difference=5):
         ]
 
         if max(team_ratings) - min(team_ratings) <= max_rating_difference:
+            for team_index, team in enumerate(reshuffled_teams):
+                for player in team:
+                    cursor.execute("UPDATE your_table_name SET team = ? WHERE id = ?", (f"Команда {team_index + 1}", player[0]))
             return reshuffled_teams
 
     return teams
@@ -110,16 +110,16 @@ def index():
             }
             .team-container {
                 display: flex;
-                flex-wrap: wrap; /* Позволяет перенос на новую строку */
+                flex-wrap: wrap;
                 justify-content: center;
-                gap: 20px; /* Отступы между командами */
+                gap: 20px;
             }
             .team {
                 background-color: #f0f0f0;
                 border: 1px solid #ccc;
                 border-radius: 10px;
                 padding: 15px;
-                width: 400px; /* Фиксированная ширина команды */
+                width: 400px;
                 box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
             }
             .team h2 {
@@ -135,7 +135,8 @@ def index():
             <body>
             <h1>Список команд и игроков:</h1>
             <a href='/update_data'><button>Обновить данные</button></a>
-            <a href='/reshuffle_teams'><button>Пересортировать команды</button></a><br/><br/>
+            <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
+            <a href='/assign_places'><button>Назначить места</button></a>
             <div class="team-container">
             """
 
@@ -197,7 +198,10 @@ def reshuffle_teams_route():
     num_teams = count // team_member_count
     teams = [[] for _ in range(num_teams)]
     teams = distribute_players(teams, active_players)
-    reshuffled_teams = reshuffle_teams(teams)
+    reshuffled_teams = reshuffle_teams(teams, cursor, max_rating_difference=5)
+
+    conn.commit()
+    conn.close()
 
     result_html = """
     <!DOCTYPE html>
@@ -214,7 +218,9 @@ def reshuffle_teams_route():
     <body>
     <h1>Пересортированные команды:</h1>
     <a href='/update_data'><button>Обновить данные</button></a>
-    <a href='/reshuffle_teams'><button>Пересортировать команды</button></a><br/><br/>
+    <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
+    <a href='/assign_places'><button>Назначить места</button></a>
+    <a href='/'><button>Назад</button></a>
     <div class="team-container">
     """
 
@@ -236,11 +242,71 @@ def reshuffle_teams_route():
     </html>
     """
 
+    return render_template_string(result_html)
+
+@app.route('/assign_places', methods=['GET', 'POST'])
+def assign_places():
+    conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT DISTINCT team FROM your_table_name WHERE team IS NOT NULL ORDER BY team")
+    teams = cursor.fetchall()
+
+    if request.method == 'POST':
+        assigned_places = {team: request.form.get(team) for team, in teams}
+        print("Назначенные места:", assigned_places)
+
+    result_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+    body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
+    .place-container { display: flex; flex-direction: column; align-items: center; }
+    .team-row { display: flex; align-items: center; margin-bottom: 10px; }
+    .team-row span { margin-right: 20px; font-size: 16px; }
+    select { padding: 5px; font-size: 14px; }
+    </style>
+    </head>
+    <body>
+    <h1>Назначение мест для команд:</h1>
+    <a href='/'><button>Назад</button></a>
+    <form method="POST">
+    <div class="place-container">
+    """
+
+    color_map = {team[0]: color[1] for team, color in zip(colors, colors)}
+
+    for team, in teams:
+        team_color = color_map.get(team, "#FFFFFF")
+        result_html += f"""
+        <div class="team-row">
+            <span style='background-color: {team_color}; width: 20px; height: 20px; display: inline-block;'></span>
+            <span>{team}</span>
+            <select name="{team}">
+                <option value="">Выберите место</option>
+        """
+        for i in range(1, 7):
+            result_html += f"<option value='{i}'>Место {i}</option>"
+
+        result_html += "</select></div>"
+
+    result_html += """
+    </div>
+    <button type="submit">Сохранить</button>
+    </form>
+    </body>
+    </html>
+    """
+
     conn.close()
     return render_template_string(result_html)
 
 @app.route('/update_data')
 def update_data():
+    conn = sqlite3.connect('C:/Users/212/Desktop/212/footgood/data.db')
+    cursor = conn.cursor()
+
     script_path = os.path.join(os.path.dirname(__file__), '2.py')
     result = subprocess.run(['python', script_path], capture_output=True, text=True)
     if result.returncode == 0:
@@ -250,4 +316,4 @@ def update_data():
     return redirect(url_for('index'))
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)  
+    app.run(debug=True, port=5001)
