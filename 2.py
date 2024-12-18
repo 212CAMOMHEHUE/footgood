@@ -4,7 +4,7 @@ import csv
 from io import StringIO
 
 # Получаем данные из Google Таблицы
-spreadsheet_id = '1LItfwAGeEVzzn6yudPsUHh90G1ySWdkcrCkLrZZN4-g'   # id оригинальной таблицы
+spreadsheet_id = '1LItfwAGeEVzzn6yudPsUHh90G1ySWdkcrCkLrZZN4-g'   # id оригинальной таблицы - 1LItfwAGeEVzzn6yudPsUHh90G1ySWdkcrCkLrZZN4-g   id тестовой таблицы - 1oMURG7ZJ2R8vIUxxoiVQl2YaGhuKjkwfJXbuCVuHFGU
 url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv'
 response = requests.get(url)
 
