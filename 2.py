@@ -1,11 +1,10 @@
-
 import sqlite3
 import requests
 import csv
 from io import StringIO
 
 # Получаем данные из Google Таблицы
-spreadsheet_id = '1LItfwAGeEVzzn6yudPsUHh90G1ySWdkcrCkLrZZN4-g'   # id оригинальной таблицы = '1LItfwAGeEVzzn6yudPsUHh90G1ySWdkcrCkLrZZN4-g'  # Замените на ваш реальный ID
+spreadsheet_id = '1LItfwAGeEVzzn6yudPsUHh90G1ySWdkcrCkLrZZN4-g'   # id оригинальной таблицы
 url = f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv'
 response = requests.get(url)
 
@@ -15,13 +14,13 @@ if response.status_code == 200:
     csv_reader = csv.reader(StringIO(data))
     
     # Создаем подключение к SQLite базе данных (или создаем новую)
-    conn = sqlite3.connect('./data.db')
+    conn = sqlite3.connect('./footgood/data.db')
     cursor = conn.cursor()
 
     # Удаляем таблицу, если она уже существует
     cursor.execute('DROP TABLE IF EXISTS your_table_name')
 
-    # Создаем таблицу с заголовками
+    # Создаем таблицу с заголовками и добавляем колонку "новый рейтинг"
     cursor.execute('''
         CREATE TABLE your_table_name (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,7 +28,9 @@ if response.status_code == 200:
             surname TEXT,
             rank TEXT,
             participate TEXT,
-            team_member TEXT
+            team_member TEXT,
+            team TEXT,  -- Колонка для команды
+            new_rating TEXT  -- Новая колонка для нового рейтинга
         )
     ''')
 
@@ -56,7 +57,7 @@ if response.status_code == 200:
         print("Вставляем строку:", row)
 
         try:
-            cursor.execute(f'''
+            cursor.execute('''
                 INSERT INTO your_table_name (name, surname, rank, participate, team_member)
                 VALUES (?, ?, ?, ?, ?)
             ''', row)
