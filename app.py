@@ -79,24 +79,57 @@ def index():
     data_exists = cursor.fetchone()[0] > 0
 
     if data_exists:
-        # Если данные о местах или рейтингах существуют, возвращаем сообщение
         result_html = """
         <!DOCTYPE html>
         <html>
         <head>
         <style>
-        body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
-        .team-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-        .team { background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 10px; padding: 15px; width: 400px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
-        .team h2 { margin: 0; font-size: 18px; color: black; }
-        .team p { margin: 5px 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f4f5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+            padding: 20px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        p {
+            margin: 10px 0;
+            color: #666;
+        }
+        a button {
+            padding: 10px 16px;
+            background-color: #007aff;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        a button:hover {
+            background-color: #005ecb;
+        }
         </style>
         </head>
         <body>
-        <h1>Места проставлены!</h1> 
-        <h2>Невозможно загрузить новых участников команд!</h2>
-        <p>Сначала сохраните новые значения рейтингов или очистите места.</p>
-        <a href='/assign_places'><button>Проставить места</button></a>
+        <div class="container">
+            <h1>Места проставлены!</h1>
+            <h2>Невозможно загрузить новых участников команд!</h2>
+            <p>Сначала сохраните новые значения рейтингов или очистите места.</p>
+            <a href='/assign_places'><button>Проставить места</button></a>
+        </div>
         </body>
         </html>
         """
@@ -145,90 +178,117 @@ def index():
 
             conn.commit()
 
+            # Форматируем средний рейтинг заранее
+            average_ratings = [
+                f"{sum(int(player[3]) for player in team) / len(team):.2f}" if len(team) > 0 else "0.00"
+                for team in teams
+            ]
+
+            colors = ["#FF9500", "#28CD41", "#5E5CE6", "#FF2D55", "#AF52DE"]  # Пример цветов
+
             result_html = """
             <!DOCTYPE html>
             <html>
             <head>
             <style>
             body {
-                background-color: #D3D3D3;
-                color: black;
-                font-family: Verdana, sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #f4f4f5;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1200px;
+                margin: auto;
+            }
+            h1 {
+                text-align: center;
+                margin-bottom: 20px;
+                font-size: 1.8em;
             }
             .team-container {
                 display: flex;
                 flex-wrap: wrap;
-                justify-content: center;
                 gap: 20px;
+                justify-content: center;
             }
             .team {
-                background-color: #f0f0f0;
-                border: 1px solid #ccc;
-                border-radius: 10px;
+                max-width: 400px;
+                flex: 1 1 calc(33.33% - 20px);
+                background: #fff;
+                border-radius: 14px;
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
                 padding: 15px;
-                width: 400px;
-                box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+                box-sizing: border-box;
             }
             .team h2 {
-                margin: 0;
-                font-size: 18px;
-                color: black;
+                font-size: 1.2em;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            .team h2 span {
+                width: 15px;
+                height: 15px;
+                display: inline-block;
+                border-radius: 50%;
             }
             .team p {
+                font-size: 0.9em;
+                color: #555;
                 margin: 5px 0;
+            }
+            .buttons {
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            button {
+                padding: 10px 16px;
+                background-color: #007aff;
+                border: none;
+                color: #fff;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #005ecb;
             }
             </style>
             </head>
             <body>
-            <h1>Список команд и игроков:</h1>
-            <a href='/update_data'><button>Обновить данные</button></a>
-            <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
-            <a href='/assign_places'><button>Назначить места</button></a>
-            <div class="team-container">
-            """
-
-            for i in range(len(teams)):
-                team_name = f"Команда {i + 1}"
-                team_color = colors[i][1] if i < len(colors) else "#FFFFFF"
-                result_html += f"""
+            <div class="container">
+                <h1>Список команд и игроков:</h1>
+                <div class="buttons">
+                    <a href='/update_data'><button>Обновить данные</button></a>
+                    <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
+                    <a href='/assign_places'><button>Назначить места</button></a>
+                </div>
+                <div class="team-container">
+                {% for i, team in enumerate(teams) %}
                 <div class="team">
-                    <h2 style='color:black;'>{team_name} <span style='display:inline-block; width: 15px; height: 15px; background-color: {team_color};'></span></h2>
-                """
-                for player in teams[i]:
-                    result_html += f"<p>Игрок: {player[1]} {player[2]}, Рейтинг: {player[3]}</p>"
-                average_rating = sum(int(player[3]) for player in teams[i]) / len(teams[i])
-                result_html += f"<p>Средний рейтинг команды: {average_rating:.2f}</p></div>"
-
-            result_html += """
+                    <h2>
+                        <span style="background-color: {{ colors[i] }};"></span>
+                        Команда {{ i+1 }}
+                    </h2>
+                    {% for player in team %}
+                    <p>Игрок: {{ player[1] }} {{ player[2] }}, Рейтинг: {{ player[3] }}</p>
+                    {% endfor %}
+                    <p><strong>Средний рейтинг команды:</strong> {{ average_ratings[i] }}</p>
+                </div>
+                {% endfor %}
+                </div>
             </div>
             </body>
             </html>
             """
 
-            return render_template_string(result_html)
-        else:
-            return render_template_string("""
-            <!DOCTYPE html>
-            <html>
-            <body>
-            <h1>Невозможно поровну разделить участников на команды.</h1>
-            <a href='/update_data'><button>Обновить данные</button></a>
-            </body>
-            </html>
-            """)
-    else:
-        return render_template_string("""
-        <!DOCTYPE html>
-        <html>
-        <body>
-        <h1>Количество игроков в команде равно нулю, деление невозможно.</h1>
-        <a href='/update_data'><button>Обновить данные</button></a>
-        </body>
-        </html>
-        """)
+            return render_template_string(result_html, teams=teams, colors=colors, enumerate=enumerate, average_ratings=average_ratings)
 
     conn.close()
-
 
 #
 #################### #################### ####################
@@ -251,23 +311,55 @@ def reshuffle_teams_route():
     data_exists = cursor.fetchone()[0] > 0
 
     if data_exists:
-        # Если данные о местах или рейтингах существуют, возвращаем сообщение
         result_html = """
         <!DOCTYPE html>
         <html>
         <head>
         <style>
-        body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
-        .team-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-        .team { background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 10px; padding: 15px; width: 400px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
-        .team h2 { margin: 0; font-size: 18px; color: black; }
-        .team p { margin: 5px 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f4f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            text-align: center;
+            padding: 20px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        p {
+            color: #555;
+        }
+        a button {
+            padding: 10px 16px;
+            background-color: #007aff;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        a button:hover {
+            background-color: #005ecb;
+        }
         </style>
         </head>
         <body>
-        <h1>Места проставлены! Невозможно пересортировать участников команд!</h1>
-        <p>Сначала сохраните новые значения рейтингов или очистите места.</p>
-        <a href='/'><button>Назад</button></a>
+        <div class="container">
+            <h1>Места проставлены! Невозможно пересортировать участников команд!</h1>
+            <p>Сначала сохраните новые значения рейтингов или очистите места.</p>
+            <a href='/'><button>Назад</button></a>
+        </div>
         </body>
         </html>
         """
@@ -292,45 +384,116 @@ def reshuffle_teams_route():
     conn.commit()
     conn.close()
 
+    # Форматируем средний рейтинг заранее
+    average_ratings = [
+        f"{sum(int(player[3]) for player in team) / len(team):.2f}" if len(team) > 0 else "0.00"
+        for team in reshuffled_teams
+    ]
+
+    colors = ["#FF9500", "#28CD41", "#5E5CE6", "#FF2D55", "#AF52DE"]  # Пример цветов
+
     result_html = """
     <!DOCTYPE html>
     <html>
     <head>
     <style>
-    body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
-    .team-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .team { background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 10px; padding: 15px; width: 400px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
-    .team h2 { margin: 0; font-size: 18px; color: black; }
-    .team p { margin: 5px 0; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #f4f4f5;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        max-width: 1200px;
+        margin: auto;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.8em;
+    }
+    .team-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+    }
+    .team {
+        max-width: 400px;
+        flex: 1 1 calc(33.33% - 20px);
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 15px;
+        box-sizing: border-box;
+    }
+    .team h2 {
+        font-size: 1.2em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .team h2 span {
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        border-radius: 50%;
+    }
+    .team p {
+        font-size: 0.9em;
+        color: #555;
+        margin: 5px 0;
+    }
+    .buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    button {
+        padding: 10px 16px;
+        background-color: #007aff;
+        border: none;
+        color: #fff;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #005ecb;
+    }
     </style>
     </head>
     <body>
-    <h1>Пересортированные команды:</h1>
-    <a href='/update_data'><button>Обновить данные</button></a>
-    <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
-    <a href='/assign_places'><button>Назначить места</button></a>
-    <div class="team-container">
-    """
-
-    for i in range(len(reshuffled_teams)):
-        team_name = f"Команда {i + 1}"
-        team_color = colors[i][1] if i < len(colors) else "#FFFFFF"
-        result_html += f"""
+    <div class="container">
+        <h1>Пересортированные команды:</h1>
+        <div class="buttons">
+            <a href='/update_data'><button>Обновить данные</button></a>
+            <a href='/reshuffle_teams'><button>Пересортировать команды</button></a>
+            <a href='/assign_places'><button>Назначить места</button></a>
+        </div>
+        <div class="team-container">
+        {% for i, team in enumerate(reshuffled_teams) %}
         <div class="team">
-            <h2 style='color:black;'>{team_name} <span style='display:inline-block; width: 15px; height: 15px; background-color: {team_color};'></span></h2>
-        """
-        for player in reshuffled_teams[i]:
-            result_html += f"<p>Игрок: {player[1]} {player[2]}, Рейтинг: {player[3]}</p>"
-        average_rating = sum(int(player[3]) for player in reshuffled_teams[i]) / len(reshuffled_teams[i])
-        result_html += f"<p>Средний рейтинг команды: {average_rating:.2f}</p></div>"
-
-    result_html += """
+            <h2>
+                <span style="background-color: {{ colors[i] }};"></span>
+                Команда {{ i+1 }}
+            </h2>
+            {% for player in team %}
+            <p>Игрок: {{ player[1] }} {{ player[2] }}, Рейтинг: {{ player[3] }}</p>
+            {% endfor %}
+            <p><strong>Средний рейтинг команды:</strong> {{ average_ratings[i] }}</p>
+        </div>
+        {% endfor %}
+        </div>
     </div>
     </body>
     </html>
     """
 
-    return render_template_string(result_html)
+    return render_template_string(result_html, reshuffled_teams=reshuffled_teams, colors=colors, enumerate=enumerate, average_ratings=average_ratings)
+
 
 #
 #################### #################### ####################
@@ -397,28 +560,96 @@ def assign_places():
     <html>
     <head>
     <style>
-    body { background-color: #D3D3D3; color: black; font-family: Verdana, sans-serif; }
-    .place-container { display: flex; flex-direction: column; align-items: center; }
-    .team-row { display: flex; align-items: center; margin-bottom: 10px; }
-    .team-row span { margin-right: 20px; font-size: 16px; }
-    select { padding: 5px; font-size: 14px; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #f4f4f5;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        max-width: 800px;
+        margin: auto;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        text-align: center;
+    }
+    h1 {
+        margin-bottom: 20px;
+        font-size: 1.8em;
+        font-weight: 600;
+    }
+    .place-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+    .team-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-start;
+        width: 100%;
+        max-width: 280px;
+        padding: 8px 0;
+    }
+    .team-row span.color {
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .team-row span.name {
+        flex-grow: 1;
+        text-align: left;
+        font-size: 16px;
+        font-weight: 500;
+    }
+    select {
+        padding: 5px 10px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin-left: auto;
+    }
+    button {
+        padding: 10px 16px;
+        background-color: #007aff;
+        border: none;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 0.9em;
+        cursor: pointer;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    button:hover {
+        background-color: #005ecb;
+    }
     </style>
     </head>
     <body>
-    <h1>Назначение мест для команд:</h1>
-    <a href='/'><button>Назад</button></a>
-    <form method="POST">
-    <div class="place-container">
+    <div class="container">
+        <h1>Назначение мест для команд:</h1>
+        <a href='/'><button>Назад</button></a>
+        <form method="POST">
+            <div class="place-container">
     """
 
-    color_map = {team_name: color for team_name, color in colors}
+    # Цвета команд
+    colors = ["#FF9500", "#28CD41", "#5E5CE6", "#FF2D55", "#AF52DE"]
+    color_map = {f"Команда {i+1}": colors[i % len(colors)] for i in range(len(teams))}
 
     for team, current_place in teams:
         team_color = color_map.get(team, "#FFFFFF")
         result_html += f"""
         <div class="team-row">
-            <span style='background-color: {team_color}; width: 20px; height: 20px; display: inline-block;'></span>
-            <span>{team}</span>
+            <span class="color" style="background-color: {team_color};"></span>
+            <span class="name">{team}</span>
             <select name="{team}">
                 <option value="" {'selected' if not current_place else ''}>Выберите место</option>
         """
@@ -429,10 +660,11 @@ def assign_places():
         result_html += "</select></div>"
 
     result_html += """
+            </div>
+            <button type="submit" name="save">Сохранить</button>
+            <button type="submit" name="clear">Стереть</button>
+        </form>
     </div>
-    <button type="submit" name="save">Сохранить</button>
-    <button type="submit" name="clear">Стереть</button>
-    </form>
     </body>
     </html>
     """
