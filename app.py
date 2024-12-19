@@ -545,16 +545,109 @@ def assign_places():
                         except ValueError:
                             print(f"Невозможно преобразовать рейтинг игрока с id {player_id} в число.")
             conn.commit()
+
+            # Формируем список игроков с разбивкой по командам
+            cursor.execute("SELECT team, current_place, name, surname, rank, new_rating FROM your_table_name WHERE team IS NOT NULL ORDER BY team")
+            player_data = cursor.fetchall()
+
+            result_html = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #f4f4f5;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                max-width: 800px;
+                margin: auto;
+                background: #fff;
+                border-radius: 14px;
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+            }
+            h1 {
+                margin-bottom: 20px;
+                font-size: 1.8em;
+                font-weight: 600;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+            table th, table td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            table th {
+                background-color: #e0e0e0; /* Тёмно-серый цвет для заголовка */
+                font-weight: bold;
+            }
+            table tr:nth-child(even) {
+                background-color: #f4f4f5; /* Светло-серый для чётных строк */
+            }
+            table tr:nth-child(odd) {
+                background-color: #ffffff; /* Белый для нечётных строк */
+            }
+            </style>
+            </head>
+            <body>
+            <div class="container">
+                <h1>Список игроков по командам</h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Команда</th>
+                            <th>Место</th>
+                            <th>Имя</th>
+                            <th>Фамилия</th>
+                            <th>Старый рейтинг</th>
+                            <th>Новый рейтинг</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
+
+            for team, current_place, name, surname, rank, new_rating in player_data:
+                result_html += f"""
+                    <tr>
+                        <td>{team}</td>
+                        <td>{current_place}</td>
+                        <td>{name}</td>
+                        <td>{surname}</td>
+                        <td>{rank}</td>
+                        <td>{new_rating}</td>
+                    </tr>
+                """
+
+            result_html += """
+                    </tbody>
+                </table>
+                <a href='/'><button>Назад</button></a>
+            </div>
+            </body>
+            </html>
+            """
+
+            conn.close()
+            return render_template_string(result_html)
+
         elif 'clear' in request.form:
             # Очищаем значения мест и новых рейтингов
             cursor.execute("UPDATE your_table_name SET current_place = NULL, new_rating = NULL")
             conn.commit()
 
-    # Обновляем список команд и их текущих мест после сохранения
-    cursor.execute("SELECT team, current_place FROM your_table_name WHERE team IS NOT NULL GROUP BY team ORDER BY team")
-    teams = cursor.fetchall()
+            # Обновляем список команд после очистки
+            cursor.execute("SELECT team, current_place FROM your_table_name WHERE team IS NOT NULL GROUP BY team ORDER BY team")
+            teams = cursor.fetchall()
 
-    # Генерируем HTML для отображения списка команд
+    # Генерируем HTML для отображения формы назначения мест
     result_html = """
     <!DOCTYPE html>
     <html>
@@ -671,6 +764,7 @@ def assign_places():
 
     conn.close()
     return render_template_string(result_html)
+
 
 #
 #################### #################### ####################
